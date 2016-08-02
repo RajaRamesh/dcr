@@ -37,24 +37,11 @@
     <exclude-pattern>*\.features\.*</exclude-pattern>
   </rule>
 
-
   <!--
-    Exclude contrib modules.
+    Exclude this standard's test files.
   -->
-  <exclude-pattern>*/modules/contrib/*</exclude-pattern>
-  <exclude-pattern>*/themes/rubik/*</exclude-pattern>
-  <exclude-pattern>*/themes/tao/*</exclude-pattern>
-  <exclude-pattern>*/themes/omega/*</exclude-pattern>
-
-  <!--
-    Exclude libraries.
-  -->
-  <exclude-pattern>*/libraries/*</exclude-pattern>
-
-  <!--
-    Exclude patches.
-  -->
-  <exclude-pattern>*\.patch$</exclude-pattern>
+  <exclude-pattern>StandardsTests/hooks\.valid\.php</exclude-pattern>
+  <exclude-pattern>StandardsTests/hooks\.invalid\.php</exclude-pattern>
 
   <!--
     Exclude text files.
@@ -74,17 +61,19 @@
   <exclude-pattern>*\.scss$</exclude-pattern>
 
   <!--
-    Exclude all JAR files.
+    Exclude JAR files.
   -->
   <exclude-pattern>*\.jar$</exclude-pattern>
 
   <!--
-    Exclude all shell script files.
+    Exclude shell script files.
   -->
   <exclude-pattern>*\.sh$</exclude-pattern>
+  <exclude-pattern>*\.bash$</exclude-pattern>
+  <exclude-pattern>*\.shell</exclude-pattern>
 
   <!--
-    Exclude all images files.
+    Exclude images files.
   -->
   <exclude-pattern>*\.jpg$</exclude-pattern>
   <exclude-pattern>*\.JPG$</exclude-pattern>
@@ -126,28 +115,17 @@
   <exclude-pattern>*\.csv</exclude-pattern>
 
   <!--
-    Exclude external tools.
+    Exclude all features-generated files.
   -->
-  <exclude-pattern>ultimatejslint\.js</exclude-pattern>
-  <exclude-pattern>simplesamlphp/*</exclude-pattern>
-  <exclude-pattern>LoremIpsum.class.php</exclude-pattern>
-  <exclude-pattern>apc.php</exclude-pattern>
-
-  <!--
-    Exclude this standard's test files.
-  -->
-  <exclude-pattern>StandardsTests/hooks\.valid\.php</exclude-pattern>
-  <exclude-pattern>StandardsTests/hooks\.invalid\.php</exclude-pattern>
-
-  <!--
-    Exclude theme Gruntfile.
-  -->
-  <exclude-pattern>Gruntfile\.js</exclude-pattern>
-
-  <!--
-    Exclude javascript files that override core or contrib functionality
-  -->
-  <exclude-pattern>*/sites/all/themes/brightday/js/overrides/*</exclude-pattern>
+  <exclude-pattern>*\.features\.*</exclude-pattern>
+  <exclude-pattern>*\.strongarm\.*</exclude-pattern>
+  <exclude-pattern>*\.context\.*</exclude-pattern>
+  <exclude-pattern>*\.field_group\.*</exclude-pattern>
+  <exclude-pattern>*\.rules_defaults\.*</exclude-pattern>
+  <exclude-pattern>*\.views_default\.*</exclude-pattern>
+  <exclude-pattern>*\.linkit_profiles\.*</exclude-pattern>
+  <exclude-pattern>*\.file_default_displays\.*</exclude-pattern>
+  <exclude-pattern>*\.ds\.*</exclude-pattern>
 
   <!--
     Short single line on functions definitions can be multiline.

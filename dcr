@@ -85,8 +85,8 @@ show_help() {
 # Main entry point.
 #
 main() {
-  local command_phpcs=$(which phpcs)
-  local command_phpcbf=$(which phpcbf)
+  local command_phpcs=$(get_composer_binary phpcs)
+  local command_phpcbf=$(get_composer_binary phpcbf)
   local binary=$command_phpcs
   local quiet=0
   local no_messages=0
@@ -292,16 +292,20 @@ config_info() {
   echo "--------------------------------------------------------------------------------"
   echo " DCR installation information"
   echo "--------------------------------------------------------------------------------"
-  echo " DCR location:          " $(get_dcr)
-  echo " DCR dir location:      " $(get_dcr_dir)
-  echo " DCR installation type: " $(get_install_type)
-  echo " Config file:           " $(get_conf_file)
-  echo " Config file dir:       " $(get_conf_dir)
-  echo " Composer home:         " $(get_composer_home_dir)
-  echo " Composer vendor:       " $(get_composer_vendor_dir)
-  echo " Composer bin:          " $(get_composer_bin_dir)
-  echo " Current directory:     " $(get_current_dir)
-  echo " Discovered standards:  " $(get_discovered_standards)
+  echo " DCR location:           " $(get_dcr)
+  echo " DCR dir location:       " $(get_dcr_dir)
+  echo " DCR installation type:  " $(get_install_type)
+  echo " Config file:            " $(get_conf_file)
+  echo " Config file dir:        " $(get_conf_dir)
+  echo " Composer home:          " $(get_composer_home_dir)
+  echo " Composer vendor:        " $(get_composer_vendor_dir)
+  echo " Composer global vendor: " $(get_composer_vendor_dir 1)
+  echo " Composer bin:           " $(get_composer_bin_dir)
+  echo " Composer global bin:    " $(get_composer_bin_dir 1)
+  echo " Current directory:      " $(get_current_dir)
+  echo " Discovered phpcs:       " $(get_composer_binary phpcs)
+  echo " Discovered phpcbf:      " $(get_composer_binary phpcbf)
+  echo " Discovered standards:   " $(get_discovered_standards)
   echo "--------------------------------------------------------------------------------"
   echo
 }
@@ -585,17 +589,16 @@ get_composer_home_dir() {
 # Get composer bin directory.
 #
 get_composer_bin_dir() {
+  local is_global=${1:-0}
   local tail=$(which tail)
-  local bin_dir=$(composer config -g bin-dir 2>&1|tail -n 1)
   local conf_dir=$(get_conf_dir)
+  [ -z "$conf_dir" ] && return 1
 
-  if [ -z "$conf_dir" ]; then
-    return 1
-  fi
-
-  if $(install_is_global) ; then
+  if [ "$is_global" == "1" ] ; then
+    local bin_dir=$(composer config -g bin-dir 2>&1|tail -n 1)
     echo $(get_composer_home_dir)/$bin_dir
   else
+    local bin_dir=$(composer config bin-dir 2>&1|tail -n 1)
     echo $conf_dir/$bin_dir
   fi
 }
@@ -604,19 +607,39 @@ get_composer_bin_dir() {
 # Get composer vendor directory.
 #
 get_composer_vendor_dir() {
+  local is_global=${1:-0}
   local tail=$(which tail)
-  local vendor_dir=$(composer config -g vendor-dir 2>&1|tail -n 1)
   local conf_dir=$(get_conf_dir)
+  [ -z "$conf_dir" ] && return 1
 
-  if [ -z "$conf_dir" ]; then
-    return 1
-  fi
-
-  if $(install_is_global); then
+  if [ $is_global == "1" ]; then
+    local vendor_dir=$(composer config -g vendor-dir 2>&1|tail -n 1)
     echo $(get_composer_home_dir)/$vendor_dir
   else
+    local vendor_dir=$(composer config vendor-dir 2>&1|tail -n 1)
     echo $conf_dir/$vendor_dir
   fi
+}
+
+#
+# Get composer local or global binary file.
+#
+get_composer_binary() {
+  local binary=$1
+  local binary_path
+
+  # Local composer dir.
+  binary_path="$(get_composer_bin_dir)/$binary"
+  if [ ! -f "$binary_path" ] ; then
+    # Global composer dir.
+    binary_path="$(get_composer_bin_dir 1)/$binary"
+    if [ ! -f "$binary_path" ] ; then
+      # Any other location.
+      binary_path=$(which $binary)
+    fi
+  fi
+
+  echo $binary_path
 }
 
 #

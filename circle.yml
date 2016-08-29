@@ -14,9 +14,12 @@ dependencies:
   - cd $HOME/$CIRCLE_PROJECT_REPONAME && bash dcr install
   # Install bats CLI testing.
   - cd $HOME && git clone https://github.com/sstephenson/bats.git && cd bats && sudo ./install.sh /usr/local
-
+  # Install shellcheck.
+  - sudo apt-get install shellcheck
 test:
   override:
+  # Lint code.
+  - cd $DCR_PROJECT_ROOT && shellcheck dcr
   # Run environment tests.
   - cd $DCR_PROJECT_ROOT && source ~/.profile && bats -p tests/bats/environment.bats
   # Run app tests.

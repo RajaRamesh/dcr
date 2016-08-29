@@ -41,9 +41,9 @@ readonly DCR_APP_STANDARDS_DIR_SRC=dcr_standards
 # %current% - the directory where the script was invoked in.
 # %project% - project root directory (where the DCR_CONF file is).
 readonly DCR_STANDARDS_PATHS=(
-  %vendor%/drupal/coder/coder_sniffer
-  %dcr%/php_codesniffer
-  %project%/$DCR_APP_STANDARDS_DIR
+%vendor%/drupal/coder/coder_sniffer
+%dcr%/php_codesniffer
+%project%/$DCR_APP_STANDARDS_DIR
 )
 
 # The file to write DCR path into.
@@ -85,112 +85,114 @@ show_help() {
 # Main entry point.
 #
 main() {
-  local command_phpcs=$(get_composer_binary phpcs)
-  local command_phpcbf=$(get_composer_binary phpcbf)
-  local binary=$command_phpcs
-  local quiet=0
-  local no_messages=0
-  local no_js=0
-  local custom_options=""
-  local custom_targets=""
-  local passthrough_options=""
-  local passthrough_targets=""
+  local command_phpcs command_phpcbf  binary  quiet  no_messages  no_js  custom_options  custom_targets  passthrough_options  passthrough_targets  project_dir  dcr_bin_dir  current_dir  conf_file  conf_success  conf_fail conf_parameters conf_targets conf_standards conf_extensions
+
+  command_phpcs=$(get_composer_binary phpcs)
+  command_phpcbf=$(get_composer_binary phpcbf)
+  binary=$command_phpcs
+  quiet=0
+  no_messages=0
+  no_js=0
+  custom_options=""
+  custom_targets=""
+  passthrough_options=""
+  passthrough_targets=""
 
   for i in "$@"
   do
     case $i in
-      --help|help)
-      show_help
-      return
+      --help | help)
+        show_help
+        return
       ;;
-      --info|info)
-      config_info
-      return
+      --info | info)
+        config_info
+        return
       ;;
-      install|init)
-      install $no_js $quiet
-      return
+      install | init)
+        install $no_js $quiet
+        return
       ;;
       fix)
-      binary=$command_phpcbf
-      custom_options="${custom_options} --no-patch"
-      shift
+        binary=$command_phpcbf
+        custom_options="${custom_options} --no-patch"
+        shift
       ;;
-      --explain|explain)
-      custom_options="${custom_options} -s"
-      shift
+      --explain | explain)
+        custom_options="${custom_options} -s"
+        shift
       ;;
       --brief)
-      custom_options="${custom_options} -p --report-file=/dev/null"
-      shift
+        custom_options="${custom_options} -p --report-file=/dev/null"
+        shift
       ;;
       --quiet)
-      quiet=1
-      shift
+        quiet=1
+        shift
       ;;
       --no-messages)
-      no_messages=1
-      shift
+        no_messages=1
+        shift
       ;;
       --no-js)
-      no_js=1
-      shift
+        no_js=1
+        shift
       ;;
       *)
       # Passthrough all unknown options.
-      if [ "${i:0:1}" == "-" ] || [ "${i:0:2}" == "--" ]; then
-        passthrough_options="${passthrough_options} ${i}"
-      else
-        passthrough_targets="${passthrough_targets} ${i}"
-      fi
-      shift
+        if [ "${i:0:1}" == "-" ] || [ "${i:0:2}" == "--" ]; then
+          passthrough_options="${passthrough_options}${i}"
+        else
+          passthrough_targets="${passthrough_targets}${i}"
+        fi
+        shift
       ;;
     esac
   done
 
-  local project_dir=$(get_conf_dir)
-  local dcr_bin_dir=$(get_dcr_dir)
-  local current_dir=$(get_current_dir)
+  project_dir=$(get_conf_dir)
+  dcr_bin_dir=$(get_dcr_dir)
+  current_dir=$(get_current_dir)
 
   # Add a guard for running from project dir or one of its sub-dirs to make sure
   # that all paths are properly resolved.
-  if [[ ! "$current_dir" =~ "$project_dir" ]] ; then
+  if [[ ! "$current_dir" =~ $project_dir ]]; then
     secho error "dcr has to be run from directory where ${DCR_CONF} is located or one of it's sub-directories" $quiet
     return 1
   fi
 
   # Read config from the file.
-  local conf_file=$(get_conf_file)
+  conf_file=$(get_conf_file)
 
   # Error if config does not exist.
-  if [ "$conf_file" == "" ] ; then
+  if [ "$conf_file" == "" ]; then
     secho error "Unable to open DCR config file. Please copy $dcr_bin_dir/$DCR_CONF_EXAMPLE to the project root." $quiet
     return 1
   fi
 
   # But try to include config for pass-through targets to use config from file.
-  if [ -f $conf_file ] ; then
-    eval $(parse_yaml $conf_file "conf_")
+  if [ -f "$conf_file" ]; then
+    eval "$(parse_yaml "$conf_file" "conf_")"
   fi
 
   # Validate and set parameters.
-  if [ ${conf_extensions+x} ] ; then
-    custom_options="--extensions=$conf_extensions $custom_options"
+  if [ "${conf_extensions+x}" ]; then
+    custom_options="--extensions=$conf_extensions$custom_options"
   fi
 
-  if [ ${conf_standards+x} ] ; then
-    custom_options="--standard=$conf_standards $custom_options"
+  if [ "${conf_standards+x}" ]; then
+    custom_options="--standard=$conf_standards$custom_options"
   fi
 
   # Re-write targets if custom ones where passed to this script.
-  if [ "$passthrough_targets" != "" ] ; then
+  if [ "$passthrough_targets" != "" ]; then
     # Targets passed to this script.
     custom_targets=$passthrough_targets
   else
     # Check that targets were provided in config.
-    if [ ${conf_targets+x} ] && [ "$conf_targets" != "" ] ; then
+    if [ "${conf_targets+x}" ] && [ "$conf_targets" != "" ]; then
       custom_targets=$conf_targets
-    elif [ "${passthrough_options}" == "" ] ; then
+    elif [ "${passthrough_options}" == "" ]; then
       # No options were passed and no options were read from config.
       secho error "No targets were provided" $quiet
       return 1
@@ -198,32 +200,32 @@ main() {
   fi
 
   # Use custom parameters from config.
-  if [ ${conf_parameters+x} ] ; then
-    custom_options="${custom_options} ${conf_parameters}"
+  if [ "${conf_parameters+x}" ]; then
+    custom_options="${custom_options}${conf_parameters}"
   fi
 
   # Pass-through options always override any default and custom options.
-  cd $project_dir
-  if [ "$quiet" == 1 ] ; then
-    $binary $custom_options $passthrough_options $custom_targets > /dev/null
+  cd "$project_dir" || exit
+  if [ "$quiet" == 1 ]; then
+    $binary "$custom_options" "$passthrough_options" "$custom_targets" > /dev/null
   else
-    $binary $custom_options $passthrough_options $custom_targets
+    $binary "$custom_options" "$passthrough_options" "$custom_targets"
   fi
   local return_code=$?
-  cd $DCR_CURRENT_DIR
+  cd "$DCR_CURRENT_DIR" || exit
 
   # Output message for phpcs.
-  if [ "$binary" == "$command_phpcs" ] ; then
+  if [ "$binary" == "$command_phpcs" ]; then
     # Output success message, but only if it was set in config and this is not
     # a non-targeted run and not quiet run and messages are not suppressed.
-    if [ ${return_code} -eq 0 ] && [ ${conf_success+x} ] && [[ ! "${passthrough_options}" =~ "-i" ]] && [ "$quiet" == 0 ] && [ "$no_messages" == 0 ] ; then
+    if [ ${return_code} -eq 0 ] && [ "${conf_success+x}" ] && [[ ! "${passthrough_options}" =~ "  -i  " ]] && [ "$quiet" == 0 ] && [ "$no_messages" == 0 ]; then
       echo
       cecho green "${conf_success}"
     fi
 
     # Output fail message, but only if it was set in config and this is not
     # a non-targeted run and not quiet run and messages are not suppressed.
-    if [ ${return_code} -eq 1 ] && [ ${conf_fail+x} ] && [[ ! "${passthrough_options}" =~ "-i" ]] && [ "$quiet" == 0 ] && [ "$no_messages" == 0 ] ; then
+    if [ ${return_code} -eq 1 ] && [ "${conf_fail+x}" ] && [[ ! "${passthrough_options}" =~ "  -i  " ]] && [ "$quiet" == 0 ] && [ "$no_messages" == 0 ]; then
       echo
       cecho red "${conf_fail}"
     fi
@@ -236,45 +238,47 @@ main() {
 # Additional installation steps.
 #
 install() {
-  local no_js=$1
-  local quiet=$2
-  local command_grep=$(which grep)
-  local command_cat=$(which cat)
+  local no_js quiet command_grep command_cat
+
+  no_js=$1
+  quiet=$2
+  command_grep=$(which grep)
+  command_cat=$(which cat)
 
   # Config file is used to find current working directory, so the very first
   # check is to make sure that config file exist and create it if it does not.
-  create_config_file $quiet
+  create_config_file "$quiet"
 
   # Make sure that DCR is symlink into composer bin.
-  symlink_file $(get_dcr) $(get_composer_bin_dir)/dcr $quiet
+  symlink_file "$(get_dcr)" "$(get_composer_bin_dir)/dcr" "$quiet"
 
   # To allow access to DCR binary from anywhere in the system, composer's binary
   # directory needs to be added to the $PATH environment variable.
-  add_environment_path $(get_composer_bin_dir) $DCR_PATH_FILE $quiet
+  add_environment_path "$(get_composer_bin_dir)" "$DCR_PATH_FILE" "$quiet"
 
   # Register code sniffer install path to phpcs config to allow proper standards
   # path resolution. This also handles paths for global and local installation.
-  register_codesniffer_standards $quiet
+  register_codesniffer_standards "$quiet"
 
-  if [ "$no_js" == 0 ] ; then
+  if [ "$no_js" == 0 ]; then
     # Separately add JS code sniffer.
-    install_jscs $quiet
+    install_jscs "$quiet"
 
     # To allow access to JSCS binary from anywhere in the system, npm's binary
     # directory needs to be added to the $PATH environment variable.
-    add_environment_path $(get_jscs_bin_dir) $DCR_PATH_FILE $quiet
+    add_environment_path "$(get_jscs_bin_dir)" "$DCR_PATH_FILE" "$quiet"
 
     # Register JSCS standards.
-    register_jscs_standards $quiet
+    register_jscs_standards "$quiet"
   else
-    secho status "Skipping JSCS installation" $quiet
+    secho status "Skipping JSCS installation" "$quiet"
   fi
 
   # Print installation information.
-  config_info $quiet
+  config_info "$quiet"
 
   # Validate that DCR was successfully installed.
-  validate_install $quiet
+  validate_install "$quiet"
 
   return $?
 }
@@ -285,27 +289,27 @@ install() {
 config_info() {
   local quiet=$1
 
-  if [ "$quiet" == 1 ] ; then
+  if [ "$quiet" == 1 ]; then
     return
   fi
 
   echo "--------------------------------------------------------------------------------"
   echo " DCR installation information"
   echo "--------------------------------------------------------------------------------"
-  echo " DCR location:           " $(get_dcr)
-  echo " DCR dir location:       " $(get_dcr_dir)
-  echo " DCR installation type:  " $(get_install_type)
-  echo " Config file:            " $(get_conf_file)
-  echo " Config file dir:        " $(get_conf_dir)
-  echo " Composer home:          " $(get_composer_home_dir)
-  echo " Composer vendor:        " $(get_composer_vendor_dir)
-  echo " Composer global vendor: " $(get_composer_vendor_dir 1)
-  echo " Composer bin:           " $(get_composer_bin_dir)
-  echo " Composer global bin:    " $(get_composer_bin_dir 1)
-  echo " Current directory:      " $(get_current_dir)
-  echo " Discovered phpcs:       " $(get_composer_binary phpcs)
-  echo " Discovered phpcbf:      " $(get_composer_binary phpcbf)
-  echo " Discovered standards:   " $(get_discovered_standards)
+  echo " DCR location:             $(get_dcr)"
+  echo " DCR dir location:         $(get_dcr_dir)"
+  echo " DCR installation type:    $(get_install_type)"
+  echo " Config file:              $(get_conf_file)"
+  echo " Config file dir:          $(get_conf_dir)"
+  echo " Composer home:            $(get_composer_home_dir)"
+  echo " Composer vendor:          $(get_composer_vendor_dir)"
+  echo " Composer global vendor:   $(get_composer_vendor_dir 1)"
+  echo " Composer bin:             $(get_composer_bin_dir)"
+  echo " Composer global bin:      $(get_composer_bin_dir 1)"
+  echo " Current directory:        $(get_current_dir)"
+  echo " Discovered phpcs:         $(get_composer_binary phpcs)"
+  echo " Discovered phpcbf:        $(get_composer_binary phpcbf)"
+  echo " Discovered standards:     $(get_discovered_standards)"
   echo "--------------------------------------------------------------------------------"
   echo
 }
@@ -314,16 +318,18 @@ config_info() {
 # Validate that config file exists and create one if it does not.
 #
 create_config_file() {
-  local quiet=$1
-  local conf_file=$(get_conf_file)
-  local dcr_dir=$(get_dcr_dir)
+  local quiet conf_file dcr_dir new_conf_file
 
-  if [ -n "$conf_file" ] && [ -f $conf_file ] ; then
-    secho status "Skipping copying of config file - file $conf_file exists." $quiet
+  quiet=$1
+  conf_file=$(get_conf_file)
+  dcr_dir=$(get_dcr_dir)
+
+  if [ -n "$conf_file" ] && [ -f "$conf_file" ]; then
+    secho status "Skipping copying of config file - file $conf_file exists." "$quiet"
   else
-    local new_conf_file=$(get_current_dir)/$DCR_CONF
-    cp $dcr_dir/$DCR_CONF_EXAMPLE $new_conf_file
-    secho changed "Copied example config file $dcr_dir/$DCR_CONF_EXAMPLE to $new_conf_file." $quiet
+    new_conf_file=$(get_current_dir)/$DCR_CONF
+    cp "$dcr_dir/$DCR_CONF_EXAMPLE" "$new_conf_file"
+    secho changed "Copied example config file $dcr_dir/$DCR_CONF_EXAMPLE to $new_conf_file." "$quiet"
   fi
 }
 
@@ -335,9 +341,9 @@ symlink_file() {
   local dst=$2
   local quiet=$3
 
-  if [ ! -e "$dst" ] ; then
-    ln -s $src $dst
-    secho changed "Symlinked $src into $dst" $quiet
+  if [ ! -e "$dst" ]; then
+    ln -s "$src" "$dst"
+    secho changed "Symlinked $src into $dst" "$quiet"
   fi
 }
 
@@ -345,29 +351,31 @@ symlink_file() {
 # Add environment path.
 #
 add_environment_path() {
-  local text=$1
-  local path_file=$2
-  local quiet=$3
+  local text path_file quiet command_grep command_cat
 
-  local command_grep=$(which grep)
-  local command_cat=$(which cat)
+  text=$1
+  path_file=$2
+  quiet=$3
+
+  command_grep=$(which grep)
+command_cat=$(which cat)
 
   # Add directory to path file.
-  if $command_cat $path_file | $command_grep -ohq "PATH=$text:\$PATH\$"; then
-    secho status "Directory $text already exported into file $path_file" $quiet
+  if $command_cat "$path_file" | $command_grep -ohq "PATH=$text:\$PATH\$"; then
+    secho status "Directory $text already exported into file $path_file" "$quiet"
   else
-    echo "PATH=$text:\$PATH" >> $path_file;
+    echo "PATH=$text:\$PATH" >> "$path_file";
   fi
 
   # Add directory to current session.
-  if echo $PATH | $command_grep -ohq "$text"; then
-    secho status "Directory $text is already in PATH for current session" $quiet
+  if echo "$PATH" | $command_grep -ohq "$text"; then
+    secho status "Directory $text is already in PATH for current session" "$quiet"
   else
     export PATH=$text:$PATH
-    if echo $PATH | $command_grep -ohq "$text"; then
-      secho changed "Added directory $text to current session PATH" $quiet
+    if echo "$PATH" | $command_grep -ohq "$text"; then
+      secho changed "Added directory $text to current session PATH" "$quiet"
     else
-      secho error "Unable to add directory $text to PATH" $quiet
+      secho error "Unable to add directory $text to PATH" "$quiet"
       return 1
     fi
   fi
@@ -377,21 +385,23 @@ add_environment_path() {
 # Create APP standards directory.
 #
 create_app_standards() {
-  local quiet=$1
-  local conf_dir=$(get_conf_dir)
+  local quiet conf_dir
 
-  if [ -z "$conf_dir" ] ; then
-    secho error "Unable to copy $DCR_APP_STANDARDS_DIR_SRC directory" $quiet
+  quiet=$1
+  conf_dir=$(get_conf_dir)
+
+  if [ -z "$conf_dir" ]; then
+    secho error "Unable to copy $DCR_APP_STANDARDS_DIR_SRC directory" "$quiet"
     return 1
   fi
 
   # Add App standard directory to current dir to allow ruleset customisations.
-  if [ ! -d "$conf_dir/$DCR_APP_STANDARDS_DIR" ] ; then
-    mkdir $conf_dir/$DCR_APP_STANDARDS_DIR
-    cp -r $(get_dcr_dir)/$DCR_APP_STANDARDS_DIR_SRC/* $conf_dir/$DCR_APP_STANDARDS_DIR
-    secho changed "Copied $DCR_APP_STANDARDS_DIR_SRC directory to $conf_dir/$DCR_APP_STANDARDS_DIR" $quiet
+  if [ ! -d "$conf_dir/$DCR_APP_STANDARDS_DIR" ]; then
+    mkdir "$conf_dir/$DCR_APP_STANDARDS_DIR"
+    cp -r "$(get_dcr_dir)/$DCR_APP_STANDARDS_DIR_SRC/*" "$conf_dir/$DCR_APP_STANDARDS_DIR"
+    secho changed "Copied $DCR_APP_STANDARDS_DIR_SRC directory to $conf_dir/$DCR_APP_STANDARDS_DIR" "$quiet"
   else
-    secho status "$DCR_APP_STANDARDS_DIR directory already exists in $conf_dir" $quiet
+    secho status "$DCR_APP_STANDARDS_DIR directory already exists in $conf_dir" "$quiet"
   fi
 }
 
@@ -399,21 +409,23 @@ create_app_standards() {
 # Register all codesniffer standards.
 #
 register_codesniffer_standards() {
-  local quiet=$1
-  local paths=("${DCR_STANDARDS_PATHS[@]}")
-  local command_phpcs=$(which phpcs)
-  local command_phpcbf=$(which phpcbf)
-  local composer_bin=$(get_composer_bin_dir)
+  local quiet paths command_phpcs command_phpcbf composer_bin
+
+  quiet=$1
+  paths=( "${DCR_STANDARDS_PATHS[@]}" )
+  command_phpcs=$(which phpcs)
+  command_phpcbf=$(which phpcbf)
+  composer_bin=$(get_composer_bin_dir)
 
   # Check that phpcs is available. By the time this function is called all
   # composer binaries should already be exposed to PATH.
-  if [ "$command_phpcs" != "$composer_bin/phpcs" ] || [ "$command_phpcbf" != "$composer_bin/phpcbf" ] ; then
-    secho error "Incorrect phpcs or phpcbf is in use. Make sure that boths phpcs and phpcbf are available in this session." $quiet
+  if [ "$command_phpcs" != "$composer_bin/phpcs" ] || [ "$command_phpcbf" != "$composer_bin/phpcbf" ]; then
+    secho error "Incorrect phpcs or phpcbf is in use. Make sure that boths phpcs and phpcbf are available in this session." "$quiet"
     return 1
   fi
 
   # Add App standard directory to allow ruleset customisations.
-  create_app_standards $quiet
+  create_app_standards "$quiet"
 
   local installed_paths=""
   # Traverse all known sniffs locations and check for their existence before
@@ -421,40 +433,42 @@ register_codesniffer_standards() {
   local count=0
   while [ "x${paths[count]}" != "x" ]
   do
-     # Replace path tokens.
-     standard_path=${paths[count]}
-     standard_path=$(replace_token "$standard_path" "vendor" "$(get_composer_vendor_dir)")
-     standard_path=$(replace_token "$standard_path" "dcr" "$(get_dcr_dir)")
-     standard_path=$(replace_token "$standard_path" "current" "$(get_current_dir)")
-     standard_path=$(replace_token "$standard_path" "project" "$(get_conf_dir)")
+    # Replace path tokens.
+    standard_path=${paths[count]}
+    standard_path=$(replace_token "$standard_path" "vendor" "$(get_composer_vendor_dir)")
+    standard_path=$(replace_token "$standard_path" "dcr" "$(get_dcr_dir)")
+    standard_path=$(replace_token "$standard_path" "current" "$(get_current_dir)")
+    standard_path=$(replace_token "$standard_path" "project" "$(get_conf_dir)")
 
-     if [ -d $standard_path ] ; then
+    if [ -d "$standard_path" ]; then
       installed_paths=${installed_paths},${standard_path}
-     fi
-     count=$(( $count + 1 ))
+    fi
+    count=$((count + 1))
   done
 
-  if [ -z "${installed_paths}" ] ; then
-    secho changed "No valid standards' paths provided." $quiet
+  if [ -z "${installed_paths}" ]; then
+    secho changed "No valid standards' paths provided." "$quiet"
   fi
 
   # Remove leading comma.
   installed_paths=${installed_paths:1}
 
-  codesniffer_config_set $command_phpcs installed_paths $installed_paths
-  codesniffer_config_set $command_phpcbf installed_paths $installed_paths
-  secho changed "Set installed_path to $installed_paths." $quiet
+  codesniffer_config_set "$command_phpcs" installed_paths "$installed_paths"
+  codesniffer_config_set "$command_phpcbf" installed_paths "$installed_paths"
+  secho changed "Set installed_path to $installed_paths." "$quiet"
 }
 
 #
 # Replace token in provided subject.
 #
 replace_token() {
-  local subject=$1
-  local token=$2
-  local replacement=$3
-  local command_sed=$(which sed)
-  echo $(echo $subject | $command_sed -e "s?%${token}%?${replacement}?g")
+  local subject $token replacement command_sed
+
+  subject=$1
+  token=$2
+  replacement=$3
+  command_sed=$(which sed)
+  echo "$subject" | $command_sed -e "s?%${token}%?${replacement}?g"
 }
 
 #
@@ -464,34 +478,36 @@ codesniffer_config_set() {
   local command=$1
   local name=$2
   local value=$3
-  $command --config-set $name $value > /dev/null
+  $command --config-set "$name" "$value" > /dev/null
 }
 
 #
 # Install JSCS.
 #
 install_jscs() {
-  local quiet=$1
-  local command_npm=$(get_npm)
+  local quiet command_npm
+
+  quiet=$1
+  command_npm=$(get_npm)
 
   command_global=""
-  if $(install_is_global) ; then
+  if install_is_global; then
     command_global=" -g "
   fi
 
   # Install JSCS.
-  $command_npm list $command_global jscs >> /dev/null
+  $command_npm list "$command_global" jscs >> /dev/null
   local jscs_installed=$?
 
-  if [ $jscs_installed -eq 0 ] ; then
-    secho status "JSCS is already installed" $quiet
+  if [ $jscs_installed -eq 0 ]; then
+    secho status "JSCS is already installed" "$quiet"
   else
     local silent=""
-    if [ "$quiet" == 1 ] ; then
+    if [ "$quiet" == 1 ]; then
       silent=" --silent"
     fi
-    $command_npm install $silent $command_global jscs
-    secho changed "Installed JSCS" $quiet
+    $command_npm install "$silent" "$command_global" jscs
+    secho changed "Installed JSCS" "$quiet"
   fi
 }
 
@@ -499,29 +515,33 @@ install_jscs() {
 # Register JSCS standards.
 #
 register_jscs_standards() {
-  local quiet=$1
-  local command_phpcs=$(which phpcs)
-  local jscs_path=$(get_jscs_bin_dir)
+  local quiet command_phpcs jscs_path
+
+  quiet=$1
+  command_phpcs=$(which phpcs)
+  jscs_path=$(get_jscs_bin_dir)
 
   # Create JSCS standards and configs.
-  create_jscs_standards $quiet
+  create_jscs_standards "quiet"
 
   # Set JSCS binary path.
-  codesniffer_config_set $command_phpcs "jscs_path" "$jscs_path"
+  codesniffer_config_set "$command_phpcs" "jscs_path" "$jscs_path"
 }
 
 #
 # Create JSCS standards and configs.
 #
 create_jscs_standards() {
-  local quiet=$1
-  local src_jscs_conf=$(get_dcr_dir)/$DCR_JSCSRC_CONF_EXAMPLE
-  local dst_file=$(get_conf_dir)/$DCR_JSCSRC_CONF
-  if [ -f $dst_file ] ; then
-    secho status "Skipping copying of $DCR_JSCSRC_CONF file - file $dst_file exists." $quiet
+  local quiet src_jscs_conf dst_file
+
+  quiet=$1
+  src_jscs_conf=$(get_dcr_dir)/$DCR_JSCSRC_CONF_EXAMPLE
+  dst_file=$(get_conf_dir)/$DCR_JSCSRC_CONF
+  if [ -f "$dst_file" ]; then
+    secho status "Skipping copying of $DCR_JSCSRC_CONF file - file $dst_file exists." "$quiet"
   else
-    cp $src_jscs_conf $dst_file
-    secho changed "Copied example $DCR_JSCSRC_CONF file $src_jscs_conf to $dst_file." $quiet
+    cp "$src_jscs_conf" "$dst_file"
+    secho changed "Copied example $DCR_JSCSRC_CONF file $src_jscs_conf to $dst_file." "$quiet"
   fi
 }
 
@@ -531,13 +551,13 @@ create_jscs_standards() {
 validate_install() {
   local quiet=$1
 
-  which dcr>/dev/null
+  which dcr > /dev/null
   local code=$?
   if [ "$code" == 0 ]; then
-    secho changed "DCR was successfully installed and is available in current session" $quiet
+    secho changed "DCR was successfully installed and is available in current session" "$quiet"
     return 0
   else
-    secho error "DCR was not successfully installed and is not available in current session" $quiet
+    secho error "DCR was not successfully installed and is not available in current session" "$quiet"
     return 1
   fi
 }
@@ -546,60 +566,60 @@ validate_install() {
 # Get DCR file location.
 #
 get_dcr() {
-  echo $(get_realpath "${BASH_SOURCE[0]}")
+  get_realpath "${BASH_SOURCE[0]}"
 }
 
 #
 # Get 'dcr' file location directory.
 #
 get_dcr_dir() {
-  echo $(_directory $(get_dcr))
+  _directory "$(get_dcr)"
 }
 
 #
 # Get the directory where script was invoked.
 #
 get_current_dir() {
-  echo $(pwd)
+  pwd
 }
 
 #
 # Get the directory where configuration file resides.
 #
 get_conf_dir() {
-  echo $(_directory $(get_conf_file))
+  _directory "$(get_conf_file)"
 }
 
 #
 # Get conf file location.
 #
 get_conf_file() {
-  echo $(upfind "$DCR_CONF")
+  upfind "$DCR_CONF"
 }
 
 #
 # Get composer home directory.
 #
 get_composer_home_dir() {
-  local tail=$(which tail)
-  echo $(composer config -g home 2>&1|tail -n 1)
+  composer config -g home 2>&1 | tail -n 1
 }
 
 #
 # Get composer bin directory.
 #
 get_composer_bin_dir() {
-  local is_global=${1:-0}
-  local tail=$(which tail)
-  local conf_dir=$(get_conf_dir)
+  local is_global conf_dir bin_dir
+
+  is_global=${1:-0}
+  conf_dir=$(get_conf_dir)
   [ -z "$conf_dir" ] && return 1
 
-  if [ "$is_global" == "1" ] ; then
-    local bin_dir=$(composer config -g bin-dir 2>&1|tail -n 1)
-    echo $(get_composer_home_dir)/$bin_dir
+  if [ "$is_global" == "1" ]; then
+    bin_dir=$(composer config -g bin-dir 2>&1 | tail -n 1)
+    echo "$(get_composer_home_dir)/$bin_dir"
   else
-    local bin_dir=$(composer config bin-dir 2>&1|tail -n 1)
-    echo $conf_dir/$bin_dir
+    bin_dir=$(composer config bin-dir 2>&1 | tail -n 1)
+    echo "$conf_dir/$bin_dir"
   fi
 }
 
@@ -607,17 +627,18 @@ get_composer_bin_dir() {
 # Get composer vendor directory.
 #
 get_composer_vendor_dir() {
-  local is_global=${1:-0}
-  local tail=$(which tail)
-  local conf_dir=$(get_conf_dir)
+  local is_global conf_dir vendor_dir
+
+  is_global=${1:-0}
+  conf_dir=$(get_conf_dir)
   [ -z "$conf_dir" ] && return 1
 
-  if [ $is_global == "1" ]; then
-    local vendor_dir=$(composer config -g vendor-dir 2>&1|tail -n 1)
-    echo $(get_composer_home_dir)/$vendor_dir
+  if [ "$is_global" == "1" ]; then
+    vendor_dir=$(composer config -g vendor-dir 2>&1 | tail -n 1)
+    echo "$(get_composer_home_dir)/$vendor_dir"
   else
-    local vendor_dir=$(composer config vendor-dir 2>&1|tail -n 1)
-    echo $conf_dir/$vendor_dir
+    vendor_dir=$(composer config vendor-dir 2>&1 | tail -n 1)
+    echo "$conf_dir/$vendor_dir"
   fi
 }
 
@@ -630,25 +651,27 @@ get_composer_binary() {
 
   # Local composer dir.
   binary_path="$(get_composer_bin_dir)/$binary"
-  if [ ! -f "$binary_path" ] ; then
+  if [ ! -f "$binary_path" ]; then
     # Global composer dir.
-    binary_path="$(get_composer_bin_dir 1)/$binary"
-    if [ ! -f "$binary_path" ] ; then
+    binary_path="$(get_composer_bin_dir1)/$binary"
+    if [ ! -f "$binary_path" ]; then
       # Any other location.
-      binary_path=$(which $binary)
+      binary_path=$(which "$binary")
     fi
   fi
 
-  echo $binary_path
+  echo "$binary_path"
 }
 
 #
 # Check if DCR is installed globally.
 #
 install_is_global() {
-  local composer_home=$(get_composer_home_dir)
-  local dcr_dir=$(get_dcr_dir)
-  if [[ "$dcr_dir" =~ "$composer_home" ]]; then
+  local composer_home dcr_dir
+
+  composer_home=$(get_composer_home_dir)
+  dcr_dir=$(get_dcr_dir)
+  if [[ "$dcr_dir" =~ $composer_home ]]; then
     # DCR is ran from global context.
     return 0
   else
@@ -661,7 +684,7 @@ install_is_global() {
 # Get install type as a string.
 #
 get_install_type() {
-  if $(install_is_global) ; then
+  if install_is_global; then
     echo 'Global'
   else
     echo 'Local'
@@ -672,7 +695,7 @@ get_install_type() {
 # Get npm path.
 #
 get_npm() {
-  echo $(which npm)
+  which npm
 }
 
 #
@@ -682,35 +705,37 @@ get_npm() {
 #
 get_jscs_bin_dir() {
   local command=""
-  if $(install_is_global) ; then
-    command=$(npm bin -g 2>/dev/null)
+  if install_is_global; then
+    command=$(npm bin -g 2 > /dev/null)
   else
     command=$(npm bin)
   fi
-  echo $command
+  echo "$command"
 }
 
 #
 # Get discovered standards.
 #
 get_discovered_standards() {
-  local command_phpcs=$(which phpcs)
-  local prefix="The installed coding standards are "
-  local prefix_size=${#prefix}
-  local output=$($command_phpcs -i)
-  output=${output:prefix_size}
-  echo $output
+  local command_phpcs prefix prefix_size output
+  command_phpcs=$(which phpcs)
+  prefix="The installed coding standards are "
+  prefix_size=${#prefix}
+  output=$($command_phpcs -i)
+  output=${output:-$prefix_size}
+  echo "$output"
 }
 
 #
 # Find file in current and all parent directories.
 #
 upfind() {
-  local command_find=$(which find);
-  local current_dir=$(get_current_dir)
-  local result=""
+  local command_find current_dir result
+  command_find=$(which find);
+  current_dir=$(get_current_dir)
+  result=""
 
-  while [[ $PWD != / ]] ; do
+  while [[ $PWD != / ]]; do
     result=$($command_find "$PWD"/ -maxdepth 1 -name "$@")
     if [ -n "$result" ]; then
       break
@@ -718,26 +743,31 @@ upfind() {
     cd ..
   done
 
-  cd $current_dir
+  cd "$current_dir" || exit
 
-  echo $result
+  echo "$result"
 }
 
 #
 # Simple key/value YAML parser.
 #
 parse_yaml() {
-   local prefix=$2
-   local s='[[:space:]]*' w='[a-zA-Z0-9_]*' fs=$(echo @|tr @ '\034')
-   sed -ne "s|^\($s\)\($w\)$s:$s\"\(.*\)\"$s\$|\1$fs\2$fs\3|p" \
-        -e "s|^\($s\)\($w\)$s:$s\(.*\)$s\$|\1$fs\2$fs\3|p"  $1 |
-   awk -F$fs '{
+  local prefix=$2
+  local s w fs
+
+  s='[[:space:]]*'
+  w='[a-zA-Z0-9_]*'
+  fs=$(echo @ | tr @ '\034')
+  sed -ne "s|^\($s\)\($w\)$s:$s\"\(.*\)\"$s\$|\1$fs\2$fs\3|p" \
+  -e "s|^\($s\)\($w\)$s:$s\(.*\)$s\$|\1$fs\2$fs\3|p" "$1" |
+
+  awk -F"$fs" '{
       indent = length($1)/2;
       vname[indent] = $2;
       for (i in vname) {if (i > indent) {delete vname[i]}}
       if (length($3) > 0) {
          vn=""; for (i=0; i<indent; i++) {vn=(vn)(vname[i])("_")}
-         printf("%s%s%s=\"%s\"\n", "'$prefix'",vn, $2, $3);
+         printf("%s%s%s=\"%s\"\n", "'"$prefix"'",vn, $2, $3);
       }
    }'
 }
@@ -745,20 +775,20 @@ parse_yaml() {
 #
 # Status echo.
 #
-secho(){
+secho() {
   local type=$1
   local message=$2
   local quiet=$3
 
-  if [ "$quiet" == 1 ] ; then
+  if [ "$quiet" == 1 ]; then
     return;
   fi
 
   case "$type" in
-    status) cecho blue "=> $message";;
-    changed) cecho green "=> $message";;
-    error) cecho red "=> $message";;
-    *) echo $message
+    status) cecho blue "=> $message" ;;
+    changed) cecho green "=> $message" ;;
+    error) cecho red "=> $message" ;;
+    *) echo "$message"
   esac
 }
 
@@ -772,14 +802,14 @@ cecho() {
 
   local color=""
   case "$input_color" in
-    black  | bk) color="${prefix}0;30m";;
-    red    |  r) color="${prefix}1;31m";;
-    green  |  g) color="${prefix}1;32m";;
-    yellow |  y) color="${prefix}1;33m";;
-    blue   |  b) color="${prefix}1;34m";;
-    purple |  p) color="${prefix}1;35m";;
-    cyan   |  c) color="${prefix}1;36m";;
-    gray   | gr) color="${prefix}0;37m";;
+    black | bk) color="${prefix}0;30m" ;;
+    red | r) color="${prefix}1;31m" ;;
+    green | g) color="${prefix}1;32m" ;;
+    yellow | y) color="${prefix}1;33m" ;;
+    blue | b) color="${prefix}1;34m" ;;
+    purple | p) color="${prefix}1;35m" ;;
+    cyan | c) color="${prefix}1;36m" ;;
+    gray | gr) color="${prefix}0;37m" ;;
     *) message="$1"
   esac
 
@@ -805,74 +835,74 @@ readonly RPL_VERSION='2013.11.19.00'
 readonly RPL_SYMLINK_LIMIT='40'
 if [[ -z "$set_max_depth" ]]
 then
-    set_max_depth=5
+  set_max_depth=5
 fi
 
 # _exit_states : simple exit states array that corresponds (one to one) with
 # the array _exit_solutions[] below.
 readonly _exit_states=(
-    'Normal exit status, exited successfully'
-    'No file found, special file type or broken symlink issues'
-    'General path to file assembly/construction issues'
-    'Physical path to file assembly/resolution issues'
-    'Exceeded symlink recursion depth (max=$set_max_depth)'
-    'Exceeded symlink recursion limit (built-in or kernel)'
-    'Symlink circular reference issue has been detected'
-    "Cannot locate utility 'ls', cannot proceed further"
-    'Unspecified or unknown condition, posssible issues'
+'Normal exit status, exited successfully'
+'No file found, special file type or broken symlink issues'
+'General path to file assembly/construction issues'
+'Physical path to file assembly/resolution issues'
+"Exceeded symlink recursion depth (max=\$set_max_depth)"
+'Exceeded symlink recursion limit (built-in or kernel)'
+'Symlink circular reference issue has been detected'
+"Cannot locate utility 'ls', cannot proceed further"
+'Unspecified or unknown condition, posssible issues'
 )
 
 # _exit solutions : used with error logs - do not alter! Must have one entry
 # for each of _exit_states[].
 readonly _exit_solutions=(
-    'No solution is needed for normal exit status'
-    'Check that file path exists, is not special and is not broken'
-    'Path may be empty, may have syntax errors and/or special symbols'
-    'Path may be empty, may have syntax errors and/or special symbols'
-    "Alter max ($set_max_depth) by increasing 'set_max_depth'"
-    'No solution offered for exceeding symlink recursion limit'
-    'Symlink circular reference should be investigated manually'
-    "Enable 'set_logical=true' or install Posix utility 'ls'"
-    'Cannot provide solution for unspecified or unknown errors'
+'No solution is needed for normal exit status'
+'Check that file path exists, is not special and is not broken'
+'Path may be empty, may have syntax errors and/or special symbols'
+'Path may be empty, may have syntax errors and/or special symbols'
+"Alter max ($set_max_depth) by increasing 'set_max_depth'"
+'No solution offered for exceeding symlink recursion limit'
+'Symlink circular reference should be investigated manually'
+"Enable 'set_logical=true' or install Posix utility 'ls'"
+'Cannot provide solution for unspecified or unknown errors'
 )
 
 # _unroll array : unroll an array passed by reference, in this case the history
 # of links.
-function _unroll(){
-    local _el                # element.
-    local _cntr=0            # counter.
-    local _array=$1[@]       # array by ref.
-    for _el in ${!_array}    # unroll array.
-    do
-        printf 'L [%02d] -> %s\n' "$_cntr" "$_el" 1>&2
-        (( _cntr++ ))
-    done
+function _unroll() {
+  local _el # element.
+  local _cntr=0 # counter.
+  local _array="$1[@]" # array by ref.
+  for _el in ${!_array} # unroll array.
+  do
+    printf 'L [%02d] -> %s\n' "$_cntr" "$_el" 1>&2
+    ((_cntr ++))
+  done
 }
 
 # _log_error code [fatal] : log according to return value (private function).
 # use optional argument 'fatal' to exit execution - send to stderr.
-function _log_error(){
-    local _code _maxm
-    _code=$1
-    _maxm=$(( ${#_exit_states[@]} - 1 ))
-    (( $_code > $_maxm )) && _code=$_maxm
-    printf 'E [%02d] %s ...\n-----> %s ...\n' "$_code" "${_exit_states[$_code]}" "${_exit_solutions[$_code]}" 1>&2
-    [[ "$2" = 'fatal' ]] && exit $_code
+function _log_error() {
+  local _code _maxm
+  _code=$1
+  _maxm=$((${#_exit_states[@]} - 1))
+  ((_code > _maxm)) && _code=$_maxm
+  printf 'E [%02d] %s ...\n-----> %s ...\n' "$_code" "${_exit_states[$_code]}" "${_exit_solutions[$_code]}" 1>&2
+  [[ "$2" = 'fatal' ]] && exit $_code
 }
 
 # _file "path/to/file" : print the file of a given path (private function).
-function _file(){
-    [[ -n "$1" ]] && printf '%s' "${1##*/}"
+function _file() {
+  [[ -n "$1" ]] && printf '%s' "${1##*/}"
 }
 
 # _directory "path/to/file" : get the directory of a path (private function)
-function _directory(){
-    [[ -n "$1" ]] && local string=${1%/*} && string=${string%/} && printf '%s' "$string"
+function _directory() {
+  [[ -n "$1" ]] && local string=${1%/*} && string=${string%/} && printf '%s' "$string"
 }
 
 # _cd "path/to/file" : change to the directory of a path (private function).
-function _cd(){
-    cd "$(_directory "$1")" 2>/dev/null
+function _cd() {
+  cd "$(_directory"$1")" 2 > /dev/null || exit
 }
 
 # GET_REALPATH
@@ -887,125 +917,113 @@ function _cd(){
 # other functions reflect return values, or exit based upon the conditions
 # generated and emitted by this function.  This is done to ensure that return
 # conditions and error messages are not duplicated.
-function get_realpath(){
-    # 0 : Pass.
-    # 1 : Fail : no file found/symlink broken/not regular file errors.
-    # 2 : Fail : physical file path assembly/resolution error.
-    # 3 : Fail : logical or physical path assembly/construction error.
-    # 4 : Fail : exceeded symlink max specified recursion error.
-    # 5 : Fail : exceeded symlink system limit recusion error.
-    # 6 : Fail : symlink circular reference detection error.
-    # 7 : Fail : the utility 'ls' does not exist error.
+function get_realpath() {
+  # 0 : Pass.
+  # 1 : Fail : no file found/symlink broken/not regular file errors.
+  # 2 : Fail : physical file path assembly/resolution error.
+  # 3 : Fail : logical or physical path assembly/construction error.
+  # 4 : Fail : exceeded symlink max specified recursion error.
+  # 5 : Fail : exceeded symlink system limit recusion error.
+  # 6 : Fail : symlink circular reference detection error.
+  # 7 : Fail : the utility 'ls' does not exist error.
 
-    # File must exist, must be regular, and symlink cannot be broken.
-    if [[ -n "$set_strict" ]]; then
-        [[ ! -f "$1" ]] && {
-            _log_error 1                               # emit error 1.
-            return 1                                   # throw status 1.
-        }
-    fi
+  # Declare locals/initialize some.
+  local _el # element of array
+  local _ls # ls command result
+  local _lk # next symlink path
+  local _lkdir # symlink directory
+  local _lkfile # symlink file name
+  local _pd='pwd' # present directory
+  local _cntr=0 # recursion counter
+  local _path="$1" # path string cache
+  local -a _paths # paths history array
 
-    # Declare locals/initialize some.
-    local _el         # element of array
-    local _ls         # ls command result
-    local _lk         # next symlink path
-    local _lkdir      # symlink directory
-    local _lkfile     # symlink file name
-    local _pd='pwd'   # present directory
-    local _cntr=0     # recursion counter
-    local _path="$1"  # path string cache
-    local -a _paths   # paths history array
+  # Begin procedures.
+  # Reset _pd
+  _pd='pwd -P'
 
-    # Begin procedures.
-    if [[ -z "$set_logical" ]]
-    then
+  # Look for symlinked file.
+  if [[ -L "$_path" ]]; then
 
-        # Reset _pd
-        _pd='pwd -P'
-
-        # Look for symlinked file.
-        if [[ -L "$_path" ]]; then
-
-            # Check that ls exists or throw.
-            hash ls || {
-                _log_error 7                           # emit error 7.
-                return 7                               # throw status 7.
-            }
-
-            # Recurse through link chain.
-            while [[ -L "$_path" ]]
-            do
-
-                # Set temporaries, assemble path or throw.
-                _ls="$( ls -dl "$_path" 2>/dev/null )" &&
-                _lk="$( printf '%s' "${_ls#*"${_path} -> "}" )" &&
-                _lkdir="$( _cd "$_path"; _cd "$_lk"; $_pd )" &&
-                _lkfile="$(_file "$_lk")" && {
-                    [[ -z "$_lkdir" ]] && _path="$_lkfile" || _path="$_lkdir"/"$_lkfile"
-                } || {
-                    _log_error 3                       # emit error 3.
-                    return 3                           # throw status 3.
-                }
-
-                # Enforce circular reference detection. This is a brute force
-                # method, stores history.  If detected, unwinds full chain
-                # history to stderr and throws.
-                (( $_cntr )) && {                      # min two elements.
-                    for _el in ${_paths[@]}
-                    do
-                        [[ "$_el" == "$_path" ]] && {  # find duplicate.
-                            _paths[$_cntr]="$_path"    # insert duplicate.
-                            _unroll _paths             # unroll paths.
-                            _log_error 6               # emit error 6.
-                            return 6                   # throw status 6.
-                        }
-                    done
-                }
-
-                # Store history.
-                _paths[$_cntr]="$_path"
-
-                # Increment.
-                (( _cntr++ ))
-
-                # Enforce user specified maximum recursion $set_max_depth or
-                # throw.
-                (( $_cntr == $set_max_depth )) && {
-                    _unroll _paths                     # unroll paths.
-                    _log_error 4                       # emit error 4.
-                    return 4                           # throw status 4.
-                }
-
-                # Enforce built-in depth limit $RPL_SYMLINK_LIMIT - overrides
-                # custom environment set_max_depth and throws.
-                (( $_cntr == $RPL_SYMLINK_LIMIT )) && {
-                    _unroll _paths                     # unroll paths.
-                    _log_error 5                       # emit error 5.
-                    return 5                           # throw status 5.
-                }
-
-            done
-
-            echo "$_path"                              # emit path.
-            return 0                                   # throw status 0.
-
-       fi
-
-    fi
-
-    # Resolve links, assemble path or throw.
-    _lkdir="$( _cd "$_path"; $_pd )" &&
-    _lkfile="$(_file "$_path")" && {
-        [[ -z "$_lkdir" ]] && _path="$_lkfile" || _path="$_lkdir"/"$_lkfile"
-    } || {
-        _log_error 3                                   # emit error 3.
-        return 3                                       # throw status 3.
+    # Check that ls exists or throw.
+    hash ls || {
+      _log_error 7 # emit error 7.
+      return 7 # throw status 7.
     }
 
-    echo "$_path"                                      # emit path.
-    return 0                                           # throw status 0.
+    # Recurse through link chain.
+    while [[ -L "$_path" ]]
+    do
+      # Set temporaries, assemble path or throw.
+      _ls="$(ls-dl"$_path"2>/dev/null)" &&
+      _lk="$(printf'%s'"${_ls#*"${_path} -> "}")" &&
+      _lkdir="$(_cd"$_path";_cd"$_lk";$_pd)" &&
+      _lkfile="$(_file"$_lk")"
+      if [ "$_lkfile" != "" ]; then
+        [[ -z "$_lkdir" ]] && _path="$_lkfile" || _path="$_lkdir"/"$_lkfile"
+      else
+        _log_error 3 # emit error 3.
+        return 3 # throw status 3.
+      fi
 
+      # Enforce circular reference detection. This is a brute force
+      # method, stores history.  If detected, unwinds full chain
+      # history to stderr and throws.
+      ((_cntr)) && { # min two elements.
+        for _el in "${_paths[@]}"
+        do
+          [[ "$_el" == "$_path" ]] && { # find duplicate.
+            _paths [ $_cntr ] = "$_path" # insert duplicate.
+            _unroll _paths # unroll paths.
+            _log_error 6 # emit error 6.
+            return 6 # throw status 6.
+          }
+        done
+      }
+
+      # Store history.
+      _paths [ $_cntr ] = "$_path"
+
+      # Increment.
+      ((_cntr ++))
+
+      # Enforce user specified maximum recursion $set_max_depth or
+      # throw.
+      ((_cntr == set_max_depth)) && {
+        _unroll _paths # unroll paths.
+        _log_error 4 # emit error 4.
+        return 4 # throw status 4.
+      }
+
+      # Enforce built-in depth limit $RPL_SYMLINK_LIMIT - overrides
+      # custom environment set_max_depth and throws.
+      ((_cntr == RPL_SYMLINK_LIMIT)) && {
+        _unroll _paths # unroll paths.
+        _log_error 5 # emit error 5.
+        return 5 # throw status 5.
+      }
+
+    done
+
+    echo "$_path" # emit path.
+    return 0 # throw status 0.
+  fi
+
+  # Resolve links, assemble path or throw.
+  _lkdir="$(_cd "$_path";$_pd)" &&
+  _lkfile="$(_file "$_path")"
+
+  if [ "$_lkfile" != "" ]; then
+    [[ -z "$_lkdir" ]] && _path="$_lkfile" || _path="$_lkdir"/"$_lkfile"
+  else
+    _log_error 3 # emit error 3.
+    return 3 # throw status 3.
+  fi
+
+  echo "$_path" # emit path.
+  return 0 # throw status 0.
 }
+
 ################################################################################
 # end of realpath-lib
 ################################################################################

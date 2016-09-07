@@ -14,6 +14,11 @@ setup() {
   DCR_FIXTURES_DIR=$DCR_PROJECT_ROOT/tests/standards_fixtures
 }
 
+@test "Version is available" {
+  run dcr --version
+  assert_contains "0.2" "$output"
+}
+
 @test "Custom vendor standards are picked up" {
   run dcr -i
   assert_equal "The installed coding standards are MySource, PEAR, PHPCS, PSR1, PSR2, Squiz, Zend, Drupal, DrupalPractice, DCR and App" "$output"

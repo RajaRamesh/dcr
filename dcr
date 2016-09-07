@@ -19,6 +19,8 @@
 # 'vendor' dir) or in it's parent directory.
 #
 
+readonly DCR_VERSION=0.2.2
+
 # Configuration file name.
 readonly DCR_CONF=".dcr.yml"
 # Configuration example file name.
@@ -62,6 +64,7 @@ show_help() {
   echo "Lint:"
   cecho green "dcr [--explain] [--brief] [--quiet] [--no-messages] [*phpcs options] [<file or dir>]"
   echo
+  echo "--version       Show DCR version"
   echo "info,           Show DCR installation information"
   echo "--info"
   echo "explain,        Show sniff codes in all reports"
@@ -79,6 +82,10 @@ show_help() {
   echo "fix             Fix all warnings and errors"
   echo "*phpcbf options Any phpcbf options ('phpcbf --help' for options list)."
   echo "file or dir     Custom file or directory to check."
+}
+
+show_version() {
+  echo $DCR_VERSION
 }
 
 #
@@ -102,6 +109,10 @@ main() {
       --help|help)
       show_help
       return
+      ;;
+      --version)
+        show_version
+        return
       ;;
       --info|info)
       config_info
@@ -292,6 +303,7 @@ config_info() {
   echo "--------------------------------------------------------------------------------"
   echo " DCR installation information"
   echo "--------------------------------------------------------------------------------"
+  echo " DCR version:            " $(show_version)
   echo " DCR location:           " $(get_dcr)
   echo " DCR dir location:       " $(get_dcr_dir)
   echo " DCR installation type:  " $(get_install_type)

@@ -19,7 +19,7 @@
 # 'vendor' dir) or in it's parent directory.
 #
 
-readonly DCR_VERSION=0.2.2
+readonly DCR_VERSION=0.3.0
 
 # Configuration file name.
 readonly DCR_CONF=".dcr.yml"
@@ -257,11 +257,11 @@ install() {
   create_config_file $quiet
 
   # Make sure that DCR is symlink into composer bin.
-  symlink_file $(get_dcr) $(get_composer_bin_dir)/dcr $quiet
+  symlink_file $(get_dcr) $(get_composer_bin_dir $(install_is_global))/dcr $quiet
 
   # To allow access to DCR binary from anywhere in the system, composer's binary
   # directory needs to be added to the $PATH environment variable.
-  add_environment_path $(get_composer_bin_dir) $DCR_PATH_FILE $quiet
+  add_environment_path $(get_composer_bin_dir $(install_is_global)) $DCR_PATH_FILE $quiet
 
   # Register code sniffer install path to phpcs config to allow proper standards
   # path resolution. This also handles paths for global and local installation.
@@ -415,7 +415,7 @@ register_codesniffer_standards() {
   local paths=("${DCR_STANDARDS_PATHS[@]}")
   local command_phpcs=$(which phpcs)
   local command_phpcbf=$(which phpcbf)
-  local composer_bin=$(get_composer_bin_dir)
+  local composer_bin=$(get_composer_bin_dir $(install_is_global))
 
   # Check that phpcs is available. By the time this function is called all
   # composer binaries should already be exposed to PATH.
@@ -435,7 +435,7 @@ register_codesniffer_standards() {
   do
      # Replace path tokens.
      standard_path=${paths[count]}
-     standard_path=$(replace_token "$standard_path" "vendor" "$(get_composer_vendor_dir)")
+     standard_path=$(replace_token "$standard_path" "vendor" "$(get_composer_vendor_dir $(install_is_global))")
      standard_path=$(replace_token "$standard_path" "dcr" "$(get_dcr_dir)")
      standard_path=$(replace_token "$standard_path" "current" "$(get_current_dir)")
      standard_path=$(replace_token "$standard_path" "project" "$(get_conf_dir)")
@@ -487,7 +487,7 @@ install_jscs() {
   local command_npm=$(get_npm)
 
   command_global=""
-  if $(install_is_global) ; then
+  if [ "$(install_is_global)" == "1" ]; then
     command_global=" -g "
   fi
 
@@ -662,10 +662,10 @@ install_is_global() {
   local dcr_dir=$(get_dcr_dir)
   if [[ "$dcr_dir" =~ "$composer_home" ]]; then
     # DCR is ran from global context.
-    return 0
+    echo 1
   else
     # DCR is ran from local context.
-    return 1
+    echo 0
   fi
 }
 
@@ -673,7 +673,7 @@ install_is_global() {
 # Get install type as a string.
 #
 get_install_type() {
-  if $(install_is_global) ; then
+  if [ "$(install_is_global)" == "1" ]; then
     echo 'Global'
   else
     echo 'Local'
@@ -694,7 +694,7 @@ get_npm() {
 #
 get_jscs_bin_dir() {
   local command=""
-  if $(install_is_global) ; then
+  if [ "$(install_is_global)" == "1" ]; then
     command=$(npm bin -g 2>/dev/null)
   else
     command=$(npm bin)

@@ -16,7 +16,7 @@ setup() {
 
 @test "Version is available" {
   run dcr --version
-  assert_contains "0.2" "$output"
+  assert_contains "0.3" "$output"
 }
 
 @test "Custom vendor standards are picked up" {
